@@ -1,0 +1,167 @@
+version: '3.2'
+
+# do not change any thing if you do not know what it means
+services:
+  web:
+    container_name: dcrm_web
+    hostname: dcrm_web
+    image: nginx:1.17.6
+    restart: always
+    ports:
+      #- "8080:80"   # test
+      - "80:80"    # production
+      - "443:443"  # https
+    volumes:
+      - app_static:/usr/share/nginx/html/static
+      - app_resources:/usr/share/nginx/html/resources
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d         # important: modify nginx conf
+      - ./docker/nginx/certs:/etc/nginx/certs           # your https certs: docker/nginx/certs
+    depends_on:
+      - app
+      - worker-default
+      - worker-high
+    links:
+      - app:dcrm-app
+  #pure-ftpd:
+   # container_name: dcrm_pure-ftpd
+   # hostname: dcrm_pure-ftpd
+   # image: gists/pure-ftpd
+   # restart: always
+   # ports:
+   #   - "21:21"
+   #   - "30000-30009:30000-30009"
+   # volumes:
+   #   - app_upload:/home/ftpuser
+   #   - /share/wf/gists-pure-ftpd/pureftpd:/etc/pureftpd
+   # depends_on:
+   #   - app
+  app:
+    container_name: dcrm_app
+    hostname: dcrm_app
+    restart: always
+    #ports:
+    #  - "8001:8001"
+    build: .
+    #image: dcrm_app
+    tty: true
+    stdin_open: true
+    volumes:
+      - app_static:/usr/src/app/static
+      - app_resources:/usr/src/app/resources
+      - app_upload:/usr/src/app/upload
+      - app_temp:/usr/src/app/temp
+      - ./.gnupg:/usr/src/app/.gnupg
+    links:
+      - db:dcrm-db
+      - redis:dcrm-redis
+      - memcached:dcrm-memcached
+    environment:
+      PYTHONUNBUFFERED: 1
+      DCRM_WORKER: none
+    env_file:
+      - ./DCRM/.env
+      - ./docker/DCRM/.env
+  worker-default:
+    container_name: dcrm_worker-default
+    hostname: dcrm_worker-default
+    restart: always
+    build: .
+    #image: dcrm_app
+    deploy:
+      mode: replicated
+      replicas: 1
+    volumes:
+      - app_static:/usr/src/app/static
+      - app_resources:/usr/src/app/resources
+      - app_upload:/usr/src/app/upload
+      - app_temp:/usr/src/app/temp
+      - ./.gnupg:/usr/src/app/.gnupg
+    links:
+      - db:dcrm-db
+      - redis:dcrm-redis
+      - memcached:dcrm-memcached
+    environment:
+      PYTHONUNBUFFERED: 1
+      DCRM_WORKER: default
+    env_file:
+      - ./DCRM/.env
+      - ./docker/DCRM/.env
+  worker-high:
+    container_name: dcrm_worker-high
+    hostname: dcrm_worker-high
+    restart: always
+    build: .
+    #image: dcrm_app
+    deploy:
+      mode: replicated
+      replicas: 2
+    volumes:
+      - app_static:/usr/src/app/static
+      - app_resources:/usr/src/app/resources
+      - app_upload:/usr/src/app/upload
+      - app_temp:/usr/src/app/temp
+      - ./.gnupg:/usr/src/app/.gnupg
+    links:
+      - db:dcrm-db
+      - redis:dcrm-redis
+      - memcached:dcrm-memcached
+    environment:
+      PYTHONUNBUFFERED: 1
+      DCRM_WORKER: high
+    env_file:
+      - ./DCRM/.env
+      - ./docker/DCRM/.env
+  scheduler:
+    container_name: dcrm_scheduler
+    hostname: dcrm_scheduler
+    restart: always
+    build: .
+    #image: dcrm_app
+    volumes:
+      - app_static:/usr/src/app/static
+      - app_resources:/usr/src/app/resources
+      - app_upload:/usr/src/app/upload
+      - app_temp:/usr/src/app/temp
+      - ./.gnupg:/usr/src/app/.gnupg
+    links:
+      - db:dcrm-db
+      - redis:dcrm-redis
+      - memcached:dcrm-memcached
+    environment:
+      PYTHONUNBUFFERED: 1
+      DCRM_WORKER: scheduler
+    env_file:
+      - ./DCRM/.env
+      - ./docker/DCRM/.env
+  db:
+    container_name: dcrm_db
+    hostname: dcrm_db
+    image:  mariadb:10.4.17
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d
+    environment:
+      MYSQL_ROOT_PASSWORD: dcrm_root_password
+      MYSQL_DATABASE: DCRM
+      MYSQL_USER: dcrm
+      MYSQL_PASSWORD: dcrm_user_password
+  redis:
+    container_name: dcrm_redis
+    hostname: dcrm_redis
+    image: arm64v8/redis:6.0
+    restart: always
+  memcached:
+    container_name: dcrm_memcached
+    hostname: dcrm_memcached
+    image: memcached
+    restart: always
+
+# your data will not lost until you clean these docker volumes
+volumes:
+  db_data:        # mysql database
+  app_static:     # static files
+  app_resources:  # debian packages
+  app_upload:     # upload root
+  app_temp:
+
