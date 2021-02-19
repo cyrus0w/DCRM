@@ -117,7 +117,7 @@ vi docker-compose.yml
 ```
 > change default FTP username and password in `services:pure-ftpd:environment`, `FTP_USER_NAME` and `FTP_USER_PASS`, enable [FTP over TLS](https://github.com/stilliard/docker-pure-ftpd#TLS) if you want
     
-7. (此步可选)默认构建的是x86环境中的docker DCRM，如果想要构建ARM64环境docker DCRM，请执行此步骤:
+7. (此步可选)默认构建的是x86环境中的docker DCRM，如果想要构建ARM64环境docker DCRM，需要注意的是ARM64版没有部署ftp，请执行此步骤:
 
 ```
 cp docker-compose.yml x86-docker-compose.yml
