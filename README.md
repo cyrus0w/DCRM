@@ -33,7 +33,8 @@
 
 
 ----
-
+# 前言
+本文在原有作者的基础上修改整理！
 
 # 1. SUMMARY
 <a id="markdown-summary" name="summary"></a>
@@ -82,7 +83,7 @@ This demo is deployed using [Container Optimized OS](https://cloud.google.com/co
 Watch the guide video: [https://youtu.be/dvNCRckm2Cc](https://youtu.be/dvNCRckm2Cc)
 
 
-# 3. DOCKER DEPLOY 自动部署
+# 3. DOCKER DEPLOY 自动部署（docker部署从这里开始看）
 <a id="markdown-docker-deploy-自动部署" name="docker-deploy-自动部署"></a>
 
 以下步骤能完整部署 DCRM 最新副本, 启用了任务队列及页面缓存支持, 你可以根据需要调整自己的配置.
@@ -91,24 +92,53 @@ Watch the guide video: [https://youtu.be/dvNCRckm2Cc](https://youtu.be/dvNCRckm2
 
 ```
 # download this project or clone this git repo:
-git clone --depth 1 https://github.com/82Flex/DCRM.git && cd DCRM
+#需要注意的是这里要clone我的仓库，因为我的仓库中Dockfiles文件修改了部分代码，为了更适合国内使用
+git clone --depth 1 https://github.com/cyrus0w/DCRM.git && cd DCRM
 ```
 
-2. 构建并启动 DCRM 容器:
+2.修改nginx配置:
+
+```
+vi docker/nginx/conf.d/default.conf
+```
+> 修改server_name后面内容为自己的域名或公网IP
+
+4.修改setting.py配置:
+
+```
+vi DCRM/settings.py
+```
+> 找到ALLOWED_HOSTS所在行，更改成自己的域名和公网IP
+
+6. 修改docker-compose.yml:
+
+```
+vi docker-compose.yml
+```
+> change default FTP username and password in `services:pure-ftpd:environment`, `FTP_USER_NAME` and `FTP_USER_PASS`, enable [FTP over TLS](https://github.com/stilliard/docker-pure-ftpd#TLS) if you want
+    
+7. (此步可选)默认构建的是x86环境中的docker DCRM，如果想要构建ARM64环境docker DCRM，请执行此步骤:
+
+```
+cp docker-compose.yml x86-docker-compose.yml
+cp arm64-docker-compose.yml docker-compose.yml
+```
+
+8.  构建并启动 DCRM 容器:
 
 ```
 # build and launch DCRM via `docker-compose`
 docker-compose up --build --detach
 ```
 
-3. 先附加到容器中:
+8. 先附加到容器中:
 
 ```
 # attach to `dcrm_app` container
 docker exec -i -t dcrm_app /bin/bash
 ```
 
-4. execute in **container**:
+9. execute in **container**:
 在容器中执行命令:
 
 ```
@@ -122,7 +152,7 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-5. access admin panel via `http://127.0.0.1/admin/`, you can upload packages via HTTP or FTP:
+10. access admin panel via `http://IP/admin/`, you can upload packages via HTTP or FTP:
 现在可以尝试访问 DCRM 后台了, 你可以通过 HTTP 或 FTP 方式上传软件包:
 
 - Default FTP username: `dcrm`
